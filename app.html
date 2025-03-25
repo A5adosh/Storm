@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>دردشة الذكاء الاصطناعي</title>
+  <meta name="theme-color" content="#16a085">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAuMBgCh7JUYAAAAASUVORK5CYII=">
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    #chat {
+      height: 500px;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 10px;
+      background-color: white;
+    }
+    #userInput {
+      width: 75%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+    button {
+      padding: 10px 20px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-right: 10px;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    .user-message {
+      color: #2c3e50;
+      margin: 10px 0;
+      text-align: left;
+    }
+    .ai-message {
+      color: #16a085;
+      margin: 10px 0;
+      text-align: right;
+    }
+  </style>
+</head>
+<body>
+  <h2>🧠 دردشة الذكاء الاصطناعي</h2>
+  <div id="chat"></div>
+  
+<div class="input-group">
+  <input type="text" id="userInput" placeholder="اكتب رسالتك هنا..." autofocus>
+  <button onclick="sendMessage()" id="sendBtn">إرسال</button>
+  <button onclick="clearChat()">مسح</button>
+</div>
+<style>
+  .input-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+  }
+  #userInput {
+    flex-grow: 1;
+    padding: 12px;
+    border: 2px solid #16a085;
+  }
+  #sendBtn {
+    background-color: #16a085;
+  }
+</style>
+
+  <button onclick="sendMessage()">إرسال</button>
+  <button onclick="clearChat()">مسح</button>
+
+  <script type="module">
+    import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.6.0';
+
+    let chatDiv;
+    let input;
+    let generator;
+
+    
+async function init() {
+  try {
+    chatDiv = document.getElementById('chat');
+    input = document.getElementById('userInput');
+    
+    chatDiv.innerHTML = `<div class="ai-message"><em>جاري تحميل النموذج، الرجاء الانتظار...</em></div>`;
+    
+    generator = await pipeline('text-generation', 'Xenova/distilgpt2', {
+      progress_callback: (progress) => {
+        chatDiv.innerHTML = `<div class="ai-message"><em>جاري التحميل ${Math.round(progress.loaded / progress.total * 100)}%...</em></div>`;
+      }
+    });
+
+    chatDiv.innerHTML = '';
+    loadChat();
+    input.focus();
+    
+  } catch (error) {
+    console.error('فشل تحميل النموذج:', error);
+    chatDiv.innerHTML = `
+      <div class="ai-message error">
+        <strong>خطأ:</strong> فشل تحميل نموذج الذكاء الاصطناعي
+        <button onclick="location.reload()">إعادة المحاولة</button>
+      </div>`;
+  }
+}
+
+      chatDiv = document.getElementById('chat');
+      input = document.getElementById('userInput');
+      generator = await pipeline('text-generation', 'Xenova/distilgpt2');
+      loadChat();
+    }
+
+    window.sendMessage = async function () {
+      const message = input.value.trim();
+      if (!message) return;
+
+      chatDiv.innerHTML += `<div class="user-message"><strong>أنت:</strong> ${message}</div>`;
+      input.value = '';
+      scrollToBottom();
+
+      chatDiv.innerHTML += `<div class="ai-message"><em>جاري التفكير...</em></div>`;
+      scrollToBottom();
+
+      try {
+        const result = await generator(message, { max_new_tokens: 60 });
+        chatDiv.lastElementChild.remove();
+        chatDiv.innerHTML += `<div class="ai-message"><strong>الذكاء الاصطناعي:</strong> ${result[0].generated_text.slice(message.length)}</div>`;
+      } catch (error) {
+        chatDiv.lastElementChild.remove();
+        chatDiv.innerHTML += `<div class="ai-message error"><strong>خطأ:</strong> حدثت مشكلة في المعالجة</div>`;
+        console.error('Error:', error);
+      }
+
+      scrollToBottom();
+      saveChat();
+    }
+
+    window.clearChat = function () {
+      chatDiv.innerHTML = '';
+      localStorage.removeItem('chatHistory');
+    }
+
+    function scrollToBottom() {
+      chatDiv.scrollTop = chatDiv.scrollHeight;
+    }
+
+    function saveChat() {
+      localStorage.setItem('chatHistory', chatDiv.innerHTML);
+    }
+
+    function loadChat() {
+      const savedChat = localStorage.getItem('chatHistory');
+      if (savedChat) {
+        chatDiv.innerHTML = savedChat;
+        scrollToBottom();
+      }
+    }
+
+    input.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        sendMessage();
+      }
+    });
+
+    init();
+  </script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const input = document.getElementById('userInput');
+    if (input) input.focus();
+
+    input?.addEventListener('touchstart', function(e) {
+      this.focus();
+      e.preventDefault();
+    });
+  });
+
+  window.addEventListener('error', function(e) {
+    console.error('Error:', e.message);
+    const chatDiv = document.getElementById('chat');
+    if (chatDiv) {
+      chatDiv.innerHTML += `<div class="ai-message error"><strong>خطأ:</strong> ${e.message}</div>`;
+    }
+  });
+</script>
+
+</body>
+</html>
