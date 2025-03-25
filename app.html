@@ -1,13 +1,9 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>دردشة الذكاء الاصطناعي</title>
-  <meta name="theme-color" content="#16a085">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAuMBgCh7JUYAAAAASUVORK5CYII=">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Storm AI - دردشة</title>
   <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -25,65 +21,45 @@
       margin-bottom: 10px;
       background-color: white;
     }
+    .input-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
     #userInput {
-      width: 75%;
-      padding: 10px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
+      flex-grow: 1;
+      padding: 12px;
+      border: 2px solid #16a085;
       font-size: 16px;
     }
     button {
-      padding: 10px 20px;
-      background-color: #4CAF50;
+      padding: 12px 20px;
+      background-color: #16a085;
       color: white;
       border: none;
       border-radius: 4px;
       cursor: pointer;
-      font-size: 16px;
-      margin-right: 10px;
-    }
-    button:hover {
-      background-color: #45a049;
     }
     .user-message {
-      color: #2c3e50;
-      margin: 10px 0;
       text-align: left;
+      margin: 10px 0;
+      color: #2c3e50;
     }
     .ai-message {
-      color: #16a085;
-      margin: 10px 0;
       text-align: right;
+      margin: 10px 0;
+      color: #16a085;
     }
   </style>
 </head>
 <body>
-  <h2>🧠 دردشة الذكاء الاصطناعي</h2>
+  <h2>💬 Storm AI</h2>
   <div id="chat"></div>
-  
-<div class="input-group">
-  <input type="text" id="userInput" placeholder="اكتب رسالتك هنا..." autofocus>
-  <button onclick="sendMessage()" id="sendBtn">إرسال</button>
-  <button onclick="clearChat()">مسح</button>
-</div>
-<style>
-  .input-group {
-    display: flex;
-    gap: 10px;
-    margin-top: 15px;
-  }
-  #userInput {
-    flex-grow: 1;
-    padding: 12px;
-    border: 2px solid #16a085;
-  }
-  #sendBtn {
-    background-color: #16a085;
-  }
-</style>
-
-  <button onclick="sendMessage()">إرسال</button>
-  <button onclick="clearChat()">مسح</button>
+  <div class="input-group">
+    <input type="text" id="userInput" placeholder="اكتب رسالتك هنا..." autofocus />
+    <button onclick="sendMessage()">إرسال</button>
+    <button onclick="clearChat()">مسح</button>
+  </div>
 
   <script type="module">
     import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.6.0';
@@ -92,38 +68,26 @@
     let input;
     let generator;
 
-    
-async function init() {
-  try {
-    chatDiv = document.getElementById('chat');
-    input = document.getElementById('userInput');
-    
-    chatDiv.innerHTML = `<div class="ai-message"><em>جاري تحميل النموذج، الرجاء الانتظار...</em></div>`;
-    
-    generator = await pipeline('text-generation', 'Xenova/distilgpt2', {
-      progress_callback: (progress) => {
-        chatDiv.innerHTML = `<div class="ai-message"><em>جاري التحميل ${Math.round(progress.loaded / progress.total * 100)}%...</em></div>`;
+    async function init() {
+      try {
+        chatDiv = document.getElementById('chat');
+        input = document.getElementById('userInput');
+        chatDiv.innerHTML = `<div class="ai-message"><em>جاري تحميل النموذج...</em></div>`;
+
+        generator = await pipeline('text-generation', 'Xenova/distilgpt2', {
+          progress_callback: (progress) => {
+            const percent = Math.round(progress.loaded / progress.total * 100);
+            chatDiv.innerHTML = `<div class="ai-message"><em>تحميل النموذج ${percent}%...</em></div>`;
+          }
+        });
+
+        chatDiv.innerHTML = '';
+        input.focus();
+        loadChat();
+      } catch (err) {
+        chatDiv.innerHTML = `<div class="ai-message error"><strong>خطأ:</strong> فشل تحميل النموذج</div>`;
+        console.error(err);
       }
-    });
-
-    chatDiv.innerHTML = '';
-    loadChat();
-    input.focus();
-    
-  } catch (error) {
-    console.error('فشل تحميل النموذج:', error);
-    chatDiv.innerHTML = `
-      <div class="ai-message error">
-        <strong>خطأ:</strong> فشل تحميل نموذج الذكاء الاصطناعي
-        <button onclick="location.reload()">إعادة المحاولة</button>
-      </div>`;
-  }
-}
-
-      chatDiv = document.getElementById('chat');
-      input = document.getElementById('userInput');
-      generator = await pipeline('text-generation', 'Xenova/distilgpt2');
-      loadChat();
     }
 
     window.sendMessage = async function () {
@@ -132,23 +96,20 @@ async function init() {
 
       chatDiv.innerHTML += `<div class="user-message"><strong>أنت:</strong> ${message}</div>`;
       input.value = '';
-      scrollToBottom();
-
       chatDiv.innerHTML += `<div class="ai-message"><em>جاري التفكير...</em></div>`;
-      scrollToBottom();
+      chatDiv.scrollTop = chatDiv.scrollHeight;
 
       try {
         const result = await generator(message, { max_new_tokens: 60 });
         chatDiv.lastElementChild.remove();
         chatDiv.innerHTML += `<div class="ai-message"><strong>الذكاء الاصطناعي:</strong> ${result[0].generated_text.slice(message.length)}</div>`;
+        saveChat();
       } catch (error) {
         chatDiv.lastElementChild.remove();
-        chatDiv.innerHTML += `<div class="ai-message error"><strong>خطأ:</strong> حدثت مشكلة في المعالجة</div>`;
-        console.error('Error:', error);
+        chatDiv.innerHTML += `<div class="ai-message error"><strong>خطأ:</strong> ${error.message}</div>`;
       }
 
-      scrollToBottom();
-      saveChat();
+      chatDiv.scrollTop = chatDiv.scrollHeight;
     }
 
     window.clearChat = function () {
@@ -156,50 +117,20 @@ async function init() {
       localStorage.removeItem('chatHistory');
     }
 
-    function scrollToBottom() {
-      chatDiv.scrollTop = chatDiv.scrollHeight;
-    }
-
     function saveChat() {
       localStorage.setItem('chatHistory', chatDiv.innerHTML);
     }
 
     function loadChat() {
-      const savedChat = localStorage.getItem('chatHistory');
-      if (savedChat) {
-        chatDiv.innerHTML = savedChat;
-        scrollToBottom();
-      }
+      const saved = localStorage.getItem('chatHistory');
+      if (saved) chatDiv.innerHTML = saved;
     }
 
-    input.addEventListener('keypress', function(e) {
-      if (e.key === 'Enter') {
-        sendMessage();
-      }
+    input?.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') sendMessage();
     });
 
-    init();
+    window.addEventListener('DOMContentLoaded', init);
   </script>
-
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const input = document.getElementById('userInput');
-    if (input) input.focus();
-
-    input?.addEventListener('touchstart', function(e) {
-      this.focus();
-      e.preventDefault();
-    });
-  });
-
-  window.addEventListener('error', function(e) {
-    console.error('Error:', e.message);
-    const chatDiv = document.getElementById('chat');
-    if (chatDiv) {
-      chatDiv.innerHTML += `<div class="ai-message error"><strong>خطأ:</strong> ${e.message}</div>`;
-    }
-  });
-</script>
-
 </body>
 </html>
